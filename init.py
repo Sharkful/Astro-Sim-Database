@@ -73,6 +73,15 @@ def create_database_and_table():
         SubhaloIDRaw BIGINT,
         SubhaloBfldDisk FLOAT,
         SubhaloBfldHalo FLOAT,
+        SubhaloPos_X FLOAT,
+        SubhaloPos_Y FLOAT,
+        SubhaloPos_Z FLOAT,
+        SubhaloVel_X FLOAT,
+        SubhaloVel_Y FLOAT,
+        SubhaloVel_Z FLOAT,
+        SubhaloSpin_X FLOAT,
+        SubhaloSpin_Y FLOAT,
+        SubhaloSpin_Z FLOAT,
         PRIMARY KEY (SubhaloIDRaw)
     );
     """
@@ -145,10 +154,12 @@ def insert_subhalo_data(df, connection):
                           SubhaloStarMetallicityMaxRad, SubhaloStellarPhotometricsMassInRad, 
                           SubhaloStellarPhotometricsRad, SubhaloVelDisp, SubhaloVmax, 
                           SubhaloVmaxRad, SubhaloWindMass, SubhaloIDRaw, 
-                          SubhaloBfldDisk, SubhaloBfldHalo) 
+                          SubhaloBfldDisk, SubhaloBfldHalo, SubhaloPos_X , SubhaloPos_Y ,
+                          SubhaloPos_Z , SubhaloVel_X , SubhaloVel_Y ,
+                          SubhaloVel_Z , SubhaloSpin_X , SubhaloSpin_Y , SubhaloSpin_Z ) 
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
             %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
-            %s, %s, %s)
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """ 
 
     
@@ -186,7 +197,16 @@ def insert_subhalo_data(df, connection):
             float(row['SubhaloWindMass']),
             int(row['SubhaloIDRaw']),
             float(row['SubhaloBfldDisk']),
-            float(row['SubhaloBfldHalo'])
+            float(row['SubhaloBfldHalo']),
+            float(row['SubhaloPos-X']),
+            float(row['SubhaloPos-Y']),
+            float(row['SubhaloPos-Z']),
+            float(row['SubhaloVel-X']),
+            float(row['SubhaloVel-Y']),
+            float(row['SubhaloVel-Z']),
+            float(row['SubhaloSpin-X']),
+            float(row['SubhaloSpin-Y']),
+            float(row['SubhaloSpin-Z'])
         )
         print("Loading Row:", i, "of", len(df))
         cursor.execute(insert_query, data)

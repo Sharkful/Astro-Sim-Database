@@ -41,6 +41,38 @@ def query_subhalo_data(child_subhalo_id_raw):
     # Execute the query
     try:
         df = pd.read_sql(query, connection)
+        st.session_state['subhalo_query_df'] = df
+        return df
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+    finally:
+        connection.close()
+
+def filtered_query_subhalo_data(pos_x_range, pos_y_range, pos_z_range, vel_x_range, vel_y_range, vel_z_range, spin_x_range, spin_y_range, spin_z_range, mass_range, mass_half_rad_range):
+    # Create a database connection
+    connection = create_db_connection()
+
+    # SQL query to find the matching subhalo data
+    query = f"""
+    SELECT * FROM Subhalos
+    WHERE 
+        SubhaloPos_X BETWEEN %s AND %s AND
+        SubhaloPos_Y BETWEEN %s AND %s AND
+        SubhaloPos_Z BETWEEN %s AND %s AND
+        SubhaloVel_X BETWEEN %s AND %s AND
+        SubhaloVel_Y BETWEEN %s AND %s AND
+        SubhaloVel_Z BETWEEN %s AND %s AND
+        SubhaloSpin_X BETWEEN %s AND %s AND
+        SubhaloSpin_Y BETWEEN %s AND %s AND
+        SubhaloSpin_Z BETWEEN %s AND %s AND
+        SubhaloMass BETWEEN %s AND %s AND
+        SubhaloMassInHalfRad BETWEEN %s AND %s;
+    """
+    
+    # Execute the query
+    try:
+        df = pd.read_sql(query, connection, params=[*pos_x_range, *pos_y_range, *pos_z_range, *vel_x_range, *vel_y_range, *vel_z_range, *spin_x_range, *spin_y_range, *spin_z_range, *mass_range, *mass_half_rad_range])
+        st.session_state['subhalo_query_df'] = df
         return df
     except Exception as e:
         st.error(f"An error occurred: {e}")
@@ -78,6 +110,8 @@ def main():
 
     if 'query_df' not in st.session_state:
         st.session_state['query_df'] = None
+    if 'subhalo_query_df' not in st.session_state:
+        st.session_state['subhalo_query_df'] = None
     if 'subhalo_df' not in st.session_state:
         st.session_state['subhalo_df'] = None
     if 'selected_row_idx' not in st.session_state:
@@ -89,15 +123,13 @@ def main():
 
     with tab1:
         # Input fields
-        merger_ratio = st.sidebar.slider('Merger Ratio', 0.0, 1.0, 0.5)
-        child_subhalo_mass = st.sidebar.slider('Child Subhalo Mass', 0.0, 100000.0, 50000.0)
-        snap_num_range = st.sidebar.slider('Snap Num Range', 0, 100, (25, 75))
-
-        merger_ratio_filter = st.sidebar.radio("Merger Ratio Filter", ('Less than', 'Greater than'))
-        mass_filter = st.sidebar.radio("Mass Filter", ('Less than', 'Greater than'))
-
+        merger_ratio = st.slider('Merger Ratio', 0.0, 1.0, 0.5)
+        child_subhalo_mass = st.slider('Child Subhalo Mass', 0.0, 100000.0, 50000.0)
+        snap_num_range = st.slider('Snap Num Range', 0, 100, (25, 75))
+        merger_ratio_filter = st.radio("Merger Ratio Filter", ('Less than', 'Greater than'))
+        mass_filter = st.radio("Mass Filter", ('Less than', 'Greater than'))
         # Button to execute query
-        if st.sidebar.button('Fetch Data'):
+        if st.button('Fetch Merger Data'):
             df = query_data(merger_ratio, child_subhalo_mass, snap_num_range, merger_ratio_filter, mass_filter)
         
         if st.session_state['query_df'] is not None:
@@ -112,11 +144,30 @@ def main():
                 st.dataframe(st.session_state['subhalo_df'])
 
     with tab2:
+        pos_x_range = st.slider("Subhalo Position X", -100000.0, 100000.0, (-100000.0, 100000.0))
+        pos_y_range = st.slider("Subhalo Position Y", -100000.0, 100000.0, (-100000.0, 100000.0))
+        pos_z_range = st.slider("Subhalo Position Z", -100000.0, 100000.0, (-100000.0, 100000.0))
+        vel_x_range = st.slider("Subhalo Velocity X", -500.0, 500.0, (-500.0, 500.0))
+        vel_y_range = st.slider("Subhalo Velocity Y", -500.0, 500.0, (-500.0, 500.0))
+        vel_z_range = st.slider("Subhalo Velocity Z", -500.0, 500.0, (-500.0, 500.0))
+        spin_x_range = st.slider("Subhalo Spin X", -400.0, 400.0, (-400.0, 400.0))
+        spin_y_range = st.slider("Subhalo Spin Y", -400.0, 400.0, (-400.0, 400.0))
+        spin_z_range = st.slider("Subhalo Spin Z", -400.0, 400.0, (-400.0, 400.0))
+        mass_range = st.slider("Subhalo Mass", 0.0, 100000.0, (0.0, 100000.0))
+        mass_half_rad_range = st.slider("Subhalo Mass Half Rad", 0.0, 400.0, (0.0, 400.0))
+        if st.button('Fetch Subhalo Data'):
+            df = filtered_query_subhalo_data(pos_x_range, pos_y_range, pos_z_range, vel_x_range, vel_y_range, vel_z_range, spin_x_range, spin_y_range, spin_z_range, mass_range, mass_half_rad_range)
+        if st.button("Fetch All Subhalo Data"):
+            connection = create_db_connection()
+            df = pd.read_sql("SELECT * FROM Subhalos", connection)
+            st.session_state['subhalo_query_df'] = df
+            connection.close()
         # Fetch all rows from the Subhalos table
-        df = pd.read_sql("SELECT * FROM Subhalos", create_db_connection())
-
-        # Display the DataFrame
-        st.dataframe(df)
+        # df = pd.read_sql("SELECT * FROM Subhalos", create_db_connection())
+        if st.session_state['subhalo_query_df'] is not None:
+            df = st.session_state['subhalo_query_df']
+            st.write("Number of matching rows:", len(df))
+            st.dataframe(df)
 
 
 if __name__ == "__main__":
