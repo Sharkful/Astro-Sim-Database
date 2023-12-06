@@ -213,43 +213,45 @@ def insert_subhalo_data(df, connection):
 
     connection.commit()
     cursor.close()
-
-def verify_csv_integrity(file_path, expected_dtypes):
+def creat_orbital_param_view(connection):
+    create_view_query = """
+        CREATE VIEW MergerOrbitalParameters AS
+        SELECT 
+            primary_subhalo.SubhaloIDRaw AS primary_id,
+            primary_subhalo.SubhaloMass AS primary_mass, 
+            primary_subhalo.SubhaloPos_X AS primary_pos_x, 
+            primary_subhalo.SubhaloPos_Y AS primary_pos_y, 
+            primary_subhalo.SubhaloPos_Z AS primary_pos_z, 
+            primary_subhalo.SubhaloVel_X AS primary_vel_x, 
+            primary_subhalo.SubhaloVel_Y AS primary_vel_y, 
+            primary_subhalo.SubhaloVel_Z AS primary_vel_z, 
+            primary_subhalo.SubhaloSpin_X AS primary_spin_x, 
+            primary_subhalo.SubhaloSpin_Y AS primary_spin_y, 
+            primary_subhalo.SubhaloSpin_Z AS primary_spin_z, 
+            secondary_subhalo.SubhaloIDRaw AS secondary_id,
+            secondary_subhalo.SubhaloMass AS secondary_mass, 
+            secondary_subhalo.SubhaloPos_X AS secondary_pos_x, 
+            secondary_subhalo.SubhaloPos_Y AS secondary_pos_y, 
+            secondary_subhalo.SubhaloPos_Z AS secondary_pos_z, 
+            secondary_subhalo.SubhaloVel_X AS secondary_vel_x, 
+            secondary_subhalo.SubhaloVel_Y AS secondary_vel_y, 
+            secondary_subhalo.SubhaloVel_Z AS secondary_vel_z, 
+            secondary_subhalo.SubhaloSpin_X AS secondary_spin_x, 
+            secondary_subhalo.SubhaloSpin_Y AS secondary_spin_y, 
+            secondary_subhalo.SubhaloSpin_Z AS secondary_spin_z
+        FROM 
+            Mergers
+        JOIN
+            Subhalos AS primary_subhalo
+        ON
+            Mergers.primary_SubhaloIDRaw = primary_subhalo.SubhaloIDRaw
+        JOIN 
+            Subhalos AS secondary_subhalo
+        ON 
+            Mergers.secondary_SubhaloIDRaw = secondary_subhalo.SubhaloIDRaw
     """
-    Verifies the integrity of a CSV file.
-
-    Args:
-    file_path (str): The path to the CSV file.
-    expected_dtypes (dict): A dictionary mapping column names to their expected data types.
-
-    Returns:
-    bool: True if the file passes the checks, False otherwise.
-    """
-    try:
-        # Read the CSV file
-        df = pd.read_csv(file_path)
-
-        # Check for missing values
-        if df.isnull().values.any():
-            print("Error: CSV file contains missing values.")
-            return False
-
-        # Check data types
-        for column, expected_dtype in expected_dtypes.items():
-            if column in df.columns:
-                if not df[column].map(type).eq(expected_dtype).all():
-                    print(f"Error: Column '{column}' contains unexpected data types.")
-                    return False
-            else:
-                print(f"Error: Column '{column}' does not exist in the CSV file.")
-                return False
-
-        print("CSV file passed all checks.")
-        return True
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return False
+    cursor = connection.cursor()
+    cursor.execute(create_view_query)
 
 def main():
     # Create database and table
@@ -267,24 +269,6 @@ def main():
     csv_file = "RawData/TNG100-1-merger-events-10 (1).csv"  # Replace with your CSV file path
     df = pd.read_csv(csv_file)
 
-    expected_dtypes = {
-        'root-SubHaloID': int,
-        'merger-ratio': float,
-        'child-SnapNum': int,
-        'child-SubhaloID': int,
-        'child-SubhaloIDRaw': int,
-        'child-SubhaloMass': float,
-        'primary-SnapNum': int,
-        'primary-SubhaloID': int,
-        'primary-SubhaloIDRaw': int,
-        'primary-SubhaloMass': float,
-        'secondary-SnapNum': int,
-        'secondary-SubhaloID': int,
-        'secondary-SubhaloIDRaw': int,
-        'secondary-SubhaloMass': float
-    }
-    verify_csv_integrity(csv_file, expected_dtypes)
-
     # Insert data into the database
     insert_merger_data(df, db)
 
@@ -294,6 +278,9 @@ def main():
     df = df.drop_duplicates(subset='SubhaloIDRaw')
     print(f"Num rows: {len(df)}, Num unique RAW Ids: {df['SubhaloIDRaw'].nunique()}")
     insert_subhalo_data(df, db)
+
+    # Create a view for the orbital parameters
+    creat_orbital_param_view(db)
 
     # Close the connection
     db.close()
