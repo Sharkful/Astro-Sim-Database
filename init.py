@@ -266,7 +266,7 @@ def main():
     )
 
     # Load CSV file
-    csv_file = "RawData/TNG100-1-merger-events-10 (1).csv"  # Replace with your CSV file path
+    csv_file = "RawData/TNG100-1-merger-events-10.csv"  # Replace with your CSV file path
     df = pd.read_csv(csv_file)
 
     # Insert data into the database
